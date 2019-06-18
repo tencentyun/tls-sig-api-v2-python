@@ -39,17 +39,19 @@ class TLSSigAPI:
         self.__sdkappid = sdkappid
         self.__key = key
 
-    def __hmacsha256(self, identifier, curr_time, expire):
+    def __hmacsha256(self, identifier, curr_time, expire, base64_userbuf=None):
         """ 通过固定串进行 hmac 然后 base64 得的 sig 字段的值"""
         raw_content_to_be_signed = "TLS.identifier:" + str(identifier) + "\n"\
                                    + "TLS.sdkappid:" + str(self.__sdkappid) + "\n"\
                                    + "TLS.time:" + str(curr_time) + "\n"\
                                    + "TLS.expire:" + str(expire) + "\n"
+        if None != base64_userbuf:
+            raw_content_to_be_signed += "TLS.userbuf:" + base64_userbuf + "\n"
         return base64.b64encode(hmac.new(self.__key.encode('utf-8'),
                                          raw_content_to_be_signed.encode('utf-8'),
                                          hashlib.sha256).digest())
 
-    def gen_sig(self, identifier, expire=180*86400):
+    def __gen_sig(self, identifier, expire=180*86400, userbuf=None):
         """ 用户可以采用默认的有效期生成 sig """
         curr_time = int(time.time())
         m = dict()
@@ -58,18 +60,33 @@ class TLSSigAPI:
         m["TLS.sdkappid"] = int(self.__sdkappid)
         m["TLS.expire"] = int(expire)
         m["TLS.time"] = int(curr_time)
-        m["TLS.sig"] = bytes.decode(self.__hmacsha256(identifier, curr_time, expire))
+        base64_userbuf = None
+        if None != userbuf:
+            base64_userbuf = bytes.decode(base64.b64encode(userbuf))
+            m["TLS.userbuf"] = base64_userbuf
+
+        m["TLS.sig"] = bytes.decode(self.__hmacsha256(
+            identifier, curr_time, expire, base64_userbuf))
 
         raw_sig = json.dumps(m)
-        print(raw_sig)
         sig_cmpressed = zlib.compress(raw_sig.encode('utf-8'))
         base64_sig = base64_encode_url(sig_cmpressed)
         return base64_sig
+
+    def gen_sig(self, identifier, expire=180*86400):
+        """ 用户可以采用默认的有效期生成 sig """
+        return self.__gen_sig(identifier, expire, None)
+
+    def gen_sig_with_userbuf(self, identifier, expire, userbuf):
+        """ 带 userbuf 生成签名 """
+        return self.__gen_sig(identifier, expire, userbuf)
 
 
 def main():
     api = TLSSigAPI(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
     sig = api.gen_sig("xiaojun")
+    print(sig)
+    sig = api.gen_sig_with_userbuf("xiaojun", 86400*180, "abc".encode("utf-8"))
     print(sig)
 
 
