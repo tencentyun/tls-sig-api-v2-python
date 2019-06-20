@@ -10,14 +10,14 @@ pip install tls-sig-api-v2
 ```
 
 ### 源码
-直接将文件 `TLSSigAPI.py` 下载到本地即可。
+直接将文件 `TLSSigAPIv2.py` 下载到本地即可。
 
 ## 使用
 
 ``` python
-import TLSSigAPI
+import TLSSigAPIv2
 
-api = TLSSigAPI.TLSSigAPI(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
+api = TLSSigAPIv2.TLSSigAPIv2(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
 sig = api.gen_sig("xiaojun")
 print(sig)
 ```

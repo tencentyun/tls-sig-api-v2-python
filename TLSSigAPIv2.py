@@ -30,7 +30,7 @@ def base64_decode_url(base64_data):
     return raw_data
 
 
-class TLSSigAPI:
+class TLSSigAPIv2:
     __sdkappid = 0
     __version = '2.0'
     __key = ""
@@ -83,7 +83,7 @@ class TLSSigAPI:
 
 
 def main():
-    api = TLSSigAPI(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
+    api = TLSSigAPIv2(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
     sig = api.gen_sig("xiaojun")
     print(sig)
     sig = api.gen_sig_with_userbuf("xiaojun", 86400*180, "abc".encode("utf-8"))
