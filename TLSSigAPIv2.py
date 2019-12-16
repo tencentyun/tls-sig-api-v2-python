@@ -38,7 +38,58 @@ class TLSSigAPIv2:
     def __init__(self, sdkappid, key):
         self.__sdkappid = sdkappid
         self.__key = key
+    def get_userbuf(self,account, dwAuthID, dwExpTime,
+               dwPrivilegeMap, dwAccountType):
+        userBuf = b''
 
+        userBuf += bytearray([
+            0,
+            ((len(account) & 0xFF00) >> 8),
+            (len(account) & 0x00FF),
+        ])
+        userBuf += bytearray(map(ord, account))
+
+        # dwSdkAppid
+        userBuf += bytearray([
+            ((self.__sdkappid & 0xFF000000) >> 24),
+            ((self.__sdkappid & 0x00FF0000) >> 16),
+            ((self.__sdkappid & 0x0000FF00) >> 8),
+            (self.__sdkappid & 0x000000FF),
+        ])
+
+        # dwAuthId
+        userBuf += bytearray([
+            ((dwAuthID & 0xFF000000) >> 24),
+            ((dwAuthID & 0x00FF0000) >> 16),
+            ((dwAuthID & 0x0000FF00) >> 8),
+            (dwAuthID & 0x000000FF),
+        ])
+
+        # time_t now = time(0);
+        # uint32_t expiredTime = now + dwExpTime;
+        userBuf += bytearray([
+            ((dwExpTime & 0xFF000000) >> 24),
+            ((dwExpTime & 0x00FF0000) >> 16),
+            ((dwExpTime & 0x0000FF00) >> 8),
+            (dwExpTime & 0x000000FF),
+        ])
+
+        # dwPrivilegeMap
+        userBuf += bytearray([
+            ((dwPrivilegeMap & 0xFF000000) >> 24),
+            ((dwPrivilegeMap & 0x00FF0000) >> 16),
+            ((dwPrivilegeMap & 0x0000FF00) >> 8),
+            (dwPrivilegeMap & 0x000000FF),
+        ])
+
+        # dwAccountType
+        userBuf += bytearray([
+            ((dwAccountType & 0xFF000000) >> 24),
+            ((dwAccountType & 0x00FF0000) >> 16),
+            ((dwAccountType & 0x0000FF00) >> 8),
+            (dwAccountType & 0x000000FF),
+        ])
+        return userBuf
     def __hmacsha256(self, identifier, curr_time, expire, base64_userbuf=None):
         """ 通过固定串进行 hmac 然后 base64 得的 sig 字段的值"""
         raw_content_to_be_signed = "TLS.identifier:" + str(identifier) + "\n"\
@@ -86,7 +137,9 @@ def main():
     api = TLSSigAPIv2(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
     sig = api.gen_sig("xiaojun")
     print(sig)
-    sig = api.gen_sig_with_userbuf("xiaojun", 86400*180, "abc".encode("utf-8"))
+    userbuf = api.get_userbuf("xiaojun",10000,86400*180,255,0)
+    print(userbuf)
+    sig = api.gen_sig_with_userbuf("xiaojun", 86400*180, userbuf)
     print(sig)
 
 
