@@ -38,6 +38,17 @@ class TLSSigAPIv2:
     def __init__(self, sdkappid, key):
         self.__sdkappid = sdkappid
         self.__key = key
+    ##用于生成实时音视频(TRTC)业务进房权限加密串,具体用途用法参考TRTC文档：https://cloud.tencent.com/document/product/647/32240 
+    # TRTC业务进房权限加密串需使用用户定义的userbuf
+    # @brief 生成 userbuf
+    # @param account 用户名
+    # @param dwSdkappid sdkappid
+    # @param dwAuthID  数字房间号
+    # @param dwExpTime 过期时间：该权限加密串的过期时间，建议300秒，300秒内拿到该签名，并且发起进房间操作
+    # @param dwPrivilegeMap 用户权限，255表示所有权限
+    # @param dwAccountType 用户类型,默认为0
+    # @return userbuf  {string}  返回的userbuf
+    #/
     def get_userbuf(self,account, dwAuthID, dwExpTime,
                dwPrivilegeMap, dwAccountType):
         userBuf = b''
@@ -65,8 +76,7 @@ class TLSSigAPIv2:
             (dwAuthID & 0x000000FF),
         ])
 
-        # time_t now = time(0);
-        # uint32_t expiredTime = now + dwExpTime;
+        #  dwExpTime = now + 300;
         userBuf += bytearray([
             ((dwExpTime & 0xFF000000) >> 24),
             ((dwExpTime & 0x00FF0000) >> 16),
