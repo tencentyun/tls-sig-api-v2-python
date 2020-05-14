@@ -44,12 +44,12 @@ class TLSSigAPIv2:
     # @param account 用户名
     # @param dwSdkappid sdkappid
     # @param dwAuthID  数字房间号
-    # @param dwExpTime 过期时间：该权限加密串的过期时间，建议300秒，300秒内拿到该签名，并且发起进房间操作
+    # @param dwExpTime 过期时间：该权限加密串的过期时间，实际过期时间：当前时间+dwExpTime
     # @param dwPrivilegeMap 用户权限，255表示所有权限
     # @param dwAccountType 用户类型,默认为0
     # @return userbuf  {string}  返回的userbuf
     #/
-    def get_userbuf(self,account, dwAuthID, dwExpTime,
+    def _gen_userbuf(self,account, dwAuthID, dwExpTime,
                dwPrivilegeMap, dwAccountType):
         userBuf = b''
 
@@ -77,11 +77,12 @@ class TLSSigAPIv2:
         ])
 
         #  dwExpTime = now + 300;
+        expire = dwExpTime +int(time.time())
         userBuf += bytearray([
-            ((dwExpTime & 0xFF000000) >> 24),
-            ((dwExpTime & 0x00FF0000) >> 16),
-            ((dwExpTime & 0x0000FF00) >> 8),
-            (dwExpTime & 0x000000FF),
+            ((expire & 0xFF000000) >> 24),
+            ((expire & 0x00FF0000) >> 16),
+            ((expire & 0x0000FF00) >> 8),
+            (expire & 0x000000FF),
         ])
 
         # dwPrivilegeMap
@@ -137,9 +138,15 @@ class TLSSigAPIv2:
     def gen_sig(self, identifier, expire=180*86400):
         """ 用户可以采用默认的有效期生成 sig """
         return self.__gen_sig(identifier, expire, None)
-
-    def gen_sig_with_userbuf(self, identifier, expire, userbuf):
+    # @brief 生成带userbuf的sig
+    # @param identifier 用户名
+    # @param roomnum  数字房间号
+    # @param expire 过期时间：该权限加密串的过期时间，实际过期时间：当前时间+expire
+    # @param privilege 用户权限，255表示所有权限
+    def gen_sig_with_userbuf(self, identifier, expire, roomnum, privilege):
         """ 带 userbuf 生成签名 """
+        userbuf = self._gen_userbuf("xiaojun",roomnum,expire,privilege,0)
+        print(userbuf)
         return self.__gen_sig(identifier, expire, userbuf)
 
 
@@ -147,9 +154,7 @@ def main():
     api = TLSSigAPIv2(1400000000, '5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e')
     sig = api.gen_sig("xiaojun")
     print(sig)
-    userbuf = api.get_userbuf("xiaojun",10000,86400*180,255,0)
-    print(userbuf)
-    sig = api.gen_sig_with_userbuf("xiaojun", 86400*180, userbuf)
+    sig = api.gen_sig_with_userbuf("xiaojun", 86400*180,10000,255)
     print(sig)
 
 
