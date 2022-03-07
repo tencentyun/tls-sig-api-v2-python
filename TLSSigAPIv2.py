@@ -50,6 +50,20 @@ class TLSSigAPIv2:
     # @param roomStr 字符串房间号,数字房间号非0时存在
     # @return userbuf  {string}  返回的userbuf
     #/
+    
+    ##It is used to generate real-time audio and video (TRTC) business access rights encryption string. For specific usage, please refer to the TRTC document：https://cloud.tencent.com/document/product/647/32240 
+    # User-defined userbuf is used for the encrypted string of TRTC service entry permission
+    # @brief generate userbuf
+    # @param account username
+    # @param dwSdkappid sdkappid
+    # @param dwAuthID  digital room number
+    # @param dwExpTime Expiration time: The expiration time of the encrypted string of this permission. Expiration time = now+dwExpTime
+    # @param dwPrivilegeMap User permissions, 255 means all permissions
+    # @param dwAccountType User type, default is 0
+    # @param roomStr String room number
+    # @return userbuf string  returned userbuf
+    #/
+    
     def _gen_userbuf(self, account, dwAuthID, dwExpTime,
                dwPrivilegeMap, dwAccountType, roomStr):
         userBuf = b''
@@ -153,6 +167,14 @@ class TLSSigAPIv2:
     # userid - 用户id，限制长度为32字节，只允许包含大小写英文字母（a-zA-Z）、数字（0-9）及下划线和连词符。
     # expire - UserSig 票据的过期时间，单位是秒，比如 86400 代表生成的 UserSig 票据在一天后就无法再使用了。
     #/
+    
+    
+    # Function: Used to issue UserSig that is required by the TRTC and IM services.
+     
+    #  Parameter description:
+    #  userid - User ID. The value can be up to 32 bytes in length and contain letters (a-z and A-Z), digits (0-9), underscores (_), and hyphens (-).
+    #  expire - UserSig expiration time, in seconds. For example, 86400 indicates that the generated UserSig will expire one day after being generated.
+    
     def genUserSig(self, userid, expire=180*86400):
         """ 用户可以采用默认的有效期生成 sig """
         return self.__gen_sig(userid, expire, None)
@@ -180,6 +202,31 @@ class TLSSigAPIv2:
     #  - privilegeMap == 1111 1111 == 255 代表该 userid 在该 roomid 房间内的所有功能权限。
     #  - privilegeMap == 0010 1010 == 42  代表该 userid 拥有加入房间和接收音视频数据的权限，但不具备其他权限。
     #/
+    
+    
+    # Function:
+    # Used to issue PrivateMapKey that is optional for room entry.
+    # PrivateMapKey must be used together with UserSig but with more powerful permission control capabilities.
+    #  - UserSig can only control whether a UserID has permission to use the TRTC service. As long as the UserSig is correct, the user with the corresponding UserID can enter or leave any room.
+    #  - PrivateMapKey specifies more stringent permissions for a UserID, including whether the UserID can be used to enter a specific room and perform audio/video upstreaming in the room.
+    # To enable stringent PrivateMapKey permission bit verification, you need to enable permission key in TRTC console > Application Management > Application Info.
+    #      *
+    # Parameter description:
+    # userid - User ID. The value can be up to 32 bytes in length and contain letters (a-z and A-Z), digits (0-9), underscores (_), and hyphens (-).
+    # roomid - ID of the room to which the specified UserID can enter.
+    # expire - PrivateMapKey expiration time, in seconds. For example, 86400 indicates that the generated PrivateMapKey will expire one day after being generated.
+    # privilegeMap - Permission bits. Eight bits in the same byte are used as the permission switches of eight specific features:
+    #  - Bit 1: 0000 0001 = 1, permission for room creation
+    #  - Bit 2: 0000 0010 = 2, permission for room entry
+    #  - Bit 3: 0000 0100 = 4, permission for audio sending
+    #  - Bit 4: 0000 1000 = 8, permission for audio receiving
+    #  - Bit 5: 0001 0000 = 16, permission for video sending
+    #  - Bit 6: 0010 0000 = 32, permission for video receiving
+    #  - Bit 7: 0100 0000 = 64, permission for substream video sending (screen sharing)
+    #  - Bit 8: 1000 0000 = 200, permission for substream video receiving (screen sharing)
+    #  - privilegeMap == 1111 1111 == 255: Indicates that the UserID has all feature permissions of the room specified by roomid.
+    #  - privilegeMap == 0010 1010 == 42: Indicates that the UserID has only the permissions to enter the room and receive audio/video data.
+
     def genPrivateMapKey(self, userid, expire, roomid, privilegeMap):
         """ 带 userbuf 生成签名 """
         userbuf = self._gen_userbuf(userid,roomid,expire,privilegeMap,0,"")
@@ -210,6 +257,29 @@ class TLSSigAPIv2:
     #  - privilegeMap == 1111 1111 == 255 代表该 userid 在该 roomid 房间内的所有功能权限。
     #  - privilegeMap == 0010 1010 == 42  代表该 userid 拥有加入房间和接收音视频数据的权限，但不具备其他权限。
     #/
+    
+    # Function:
+    #  Used to issue PrivateMapKey that is optional for room entry.
+    #  PrivateMapKey must be used together with UserSig but with more powerful permission control capabilities.
+    #   - UserSig can only control whether a UserID has permission to use the TRTC service. As long as the UserSig is correct, the user with the corresponding UserID can enter or leave any room.
+    #   - PrivateMapKey specifies more stringent permissions for a UserID, including whether the UserID can be used to enter a specific room and perform audio/video upstreaming in the room.
+    #  To enable stringent PrivateMapKey permission bit verification, you need to enable permission key in TRTC console > Application Management > Application Info.
+    #  *
+    #  Parameter description:
+    #  @param userid - User ID. The value can be up to 32 bytes in length and contain letters (a-z and A-Z), digits (0-9), underscores (_), and hyphens (-).
+    #  @param roomstr - ID of the room to which the specified UserID can enter.
+    #  @param expire - PrivateMapKey expiration time, in seconds. For example, 86400 indicates that the generated PrivateMapKey will expire one day after being generated.
+    #  @param privilegeMap - Permission bits. Eight bits in the same byte are used as the permission switches of eight specific features:
+    #   - Bit 1: 0000 0001 = 1, permission for room creation
+    #   - Bit 2: 0000 0010 = 2, permission for room entry
+    #   - Bit 3: 0000 0100 = 4, permission for audio sending
+    #   - Bit 4: 0000 1000 = 8, permission for audio receiving
+    #   - Bit 5: 0001 0000 = 16, permission for video sending
+    #   - Bit 6: 0010 0000 = 32, permission for video receiving
+    #   - Bit 7: 0100 0000 = 64, permission for substream video sending (screen sharing)
+    #   - Bit 8: 1000 0000 = 200, permission for substream video receiving (screen sharing)
+    #   - privilegeMap == 1111 1111 == 255: Indicates that the UserID has all feature permissions of the room specified by roomid.
+    #   - privilegeMap == 0010 1010 == 42: Indicates that the UserID has only the permissions to enter the room and receive audio/video data.
     def genPrivateMapKeyWithStringRoomID(self, userid, expire, roomstr, privilegeMap):
         """ 带 userbuf 生成签名 """
         userbuf = self._gen_userbuf(userid,0,expire,privilegeMap,0,roomstr)
